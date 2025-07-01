@@ -6,6 +6,7 @@ import re
 from news_model import load_data
 from news_model import clean_data
 from news_model import extract_topics
+from sklearn.metrics import accuracy_score
 
 # i need to import the modules
 
@@ -65,11 +66,31 @@ def test_extracted_topic_topic(load_dataset):
     """
     
     
-    assert len(extract_topics(clean_data(load_dataset)).topic.unique()) == 26, "There should be 26 news categories"
+    assert len(extract_topics(clean_data(load_dataset)).topic.unique()) == 14, "There should be 14 news categories"
     
     
 def test_extracted_topic_columns(load_dataset):
     assert extract_topics(clean_data(load_dataset)).columns.is_unique == True, "The columns should be unique"
 
 def test_extracted_topic_year_month(load_dataset):
+    pass
+
+def test_stopwords(load_dataset): 
+    # checking if the stop words have been removed 
+    pass
+
+def test_split(load_dataset): 
+    # checking if the dataset split is correct 
+    pass 
+
+
+
+def test_training_dimensions(load_dataset): 
+    # this will check the dimensions of the training dataset 
+    pass 
+
+
+
+def test_predictions_over_80(load_dataset):
+    # checking if the predictions are over 80% accurate 
     pass

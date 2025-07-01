@@ -18,9 +18,10 @@ class ScraperSpider(scrapy.Spider):
     years = [i for i in range(2021, latest_year + 1)]
     
     
+    print (f"Years: {years}") 
     
     
-    month = 1 
+    
     
     # the loop will be exited once it reaches the current date
     
@@ -80,5 +81,9 @@ class ScraperSpider(scrapy.Spider):
                 "date": i.css(".current-events-title *::text").get(),
                 
                 ## problem here is that it collects ALL of the text data
-                "text": i.css("ul li *::text").getall()
+                # I can include a delimiter than be used to separate the text
+                # i can include the heading
+                "text": i.css("ul li *::text").getall(),
+                "headings": i.css("div.current-events-content.description.current-events-content-heading")
+                # 
             }

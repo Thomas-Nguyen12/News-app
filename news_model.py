@@ -3,7 +3,31 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 import seaborn as sns 
 from sklearn.model_selection import train_test_split 
+from sklearn.metrics import hamming_loss, accuracy_score, f1_score, precision_score, recall_score
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression 
+from sklearn.tree import DecisionTreeClassifier 
+import numpy as np
+import sklearn
+from sklearn import metrics 
+# This module refers to k-nearest neighbors for multi-label
+from skmultilearn.adapt import MLkNN
 
+## the ARAAM model is a neural network for large scale text classification 
+from skmultilearn.problem_transform import BinaryRelevance
+from sklearn.ensemble import RandomForestClassifier 
+
+from sklearn.metrics import roc_auc_score
+from nltk.corpus import stopwords
+stop_words = set(stopwords.words('english'))
+
+from sklearn.svm import SVC
+from nltk.tokenize import word_tokenize
+from scipy.sparse import csr_matrix 
+import re 
+import joblib 
+import warnings
+warnings.filterwarnings('ignore')
 """ 
 This program will build a model for my news data to predict
 trends over time 
@@ -58,6 +82,108 @@ def clean_data(data):
     # 
     
     data.text = data.text.str.replace("^edit,history,watch,", "", regex=True) 
+    # I need to make sure that there are no topics that are the same but spelled 
+    # slightly differently 
+    
+    ## topics = ['Armed conflicts and attacks', 'Arts and culture',
+    #   'Business and economy', 'Disasters and accidents',
+    #   'Health and environment', 'International relations',
+    #   'Law and crime', 'Politics and elections',
+    #   'Science and technology', 'Sports', 'Businesses and economy',
+    #   "Politics and elections'", 'Science',
+    #   'Armed attacks and conflicts', 'Other', 'Royalty',
+    #   'Science and Technology', 'Politics and economics',
+    #   'Disasters and Accidents', 'Law and Crime',
+    #   'Science and technology ', 'Entertainment', 'Arts and culture ',
+    #   'Attacks and armed conflicts', 'Arts and Culture ',
+    #   ' Disasters and accidents ']
+    
+    
+    # removing whitespaces
+    
+    """ 
+    array(['Armed conflicts and attacks', 'Arts and culture',
+       'Disasters and accidents', 'Health and environment',
+       'International relations', 'Law and crime',
+       'Politics and elections', 'Sports',
+       'Science and technology and technologyand technology',
+       'Business and economy', 'Science and technology and technology',
+       'Other', 'Politics and economics', 'Royalty',
+       'Science and technology and technologyand Technology',
+       'Science and technology and technologyand technology ',
+       'Entertainment', 'Attacks and armed conflicts'], dtype=object)
+    
+    """
+    
+    
+    """ 
+    array(['Armed conflicts and attacks', 'Arts and culture',
+       'Disasters and accidents', 'Health and environment',
+       'International relations', 'Law and crime',
+       'Politics and elections', 'Sports',
+       'Science and technology and technologyand technology',
+       'Business and economy', 'Science and technology and technology',
+       'Other', 'Politics and economics', 'Royalty',
+       'Science and technology and technologyand Technology',
+       'Science and technology and technologyand technology ',
+       'Entertainment'], dtype=object)
+    """
+    
+    """ 
+    
+    
+ 
+ 
+ 'Science and technology and technologyand technology'
+ 'Science and technology and technology'
+  
+ 'Science and technology and technologyand Technology'
+ 'Science and technology and technologyand technology ']
+    """
+    
+    
+    # I can use a lambda function 
+    
+    
+
+    data.topic = data.topic.str.replace("Science and technology and technologyand technology", "Science and technology", regex=True) 
+    data.topic = data.topic.str.replace("Science and technology and technology", "Science and technology", regex=True) 
+    data.topic = data.topic.str.replace("Science and technology and technologyand Technology", "Science and technology", regex=True) 
+    data.topic = data.topic.str.replace("Science and technology and technologyand technology ", "Science and technology", regex=True)
+    
+    data.topic = data.topic.str.replace("Attacks and armed conflicts", "Armed conflicts and attacks", regex=True) 
+    data.topic = data.topic.str.replace('Science and technology and technology', "Science and technology", regex=True) 
+    data.topic = data.topic.str.replace("Science and technology and technologyand technology'", "Science and technology", regex=True) 
+    data.topic = data.topic.str.replace("Science and technology and technologyand Technology", "Science and technology", regex=True) 
+    data.topic = data.topic.str.replace("Science and technology and technologyand technology", "Science and technology", regex=True) 
+    
+    
+    data.topic = data.topic.str.replace("Armed attacks and conflicts", "Armed conflicts and attacks", regex=True) 
+    
+    data.topic = data.topic.str.replace("Arts and culture ", "Arts and culture", regex=True) 
+    data.topic = data.topic.str.replace("Arts and Culture ", "Arts and culture", regex=True)
+    
+    data.topic = data.topic.str.replace("Businesses and economy", "Business and economy", regex=True) 
+    
+    data.topic = data.topic.str.replace(" Disasters and accidents ", "Disasters and accidents", regex=True)
+    data.topic = data.topic.str.replace("Disasters and Accidents", "Disasters and accidents", regex=True)
+    
+    data.topic = data.topic.str.replace("Law and Crime", "Law and crime", regex=True) 
+    
+    data.topic = data.topic.str.replace("Politics and elections'", "Politics and elections", regex=True) 
+    
+    data.topic = data.topic.str.replace("Science", "Science and technology", regex=True) 
+    
+    data.topic = data.topic.str.replace("Science and Technology", "Science and technology", regex=True) 
+    
+    data.topic = data.topic.str.replace("Science and technology ", "Science and technology", regex=True) 
+    
+    
+    data.topic = data.topic.str.replace("Science", "Science and technology", regex=True)
+    data.topic = data.topic.str.replace("Disasters and incidents", "Disasters and accidents", regex=True)
+    
+    # replacing the weirdly labelled column labels 
+    
     return data 
     
     
@@ -67,7 +193,29 @@ def extract_topics(new_df):
     # To do this, I should keep track of how many topics there are and match the number of years
     # i can use tuples to do this 
     
+    new_df.topic = new_df.topic.str.replace("Science and technology and technologyand technology", "Science and technology", regex=True) 
+    new_df.topic = new_df.topic.str.replace("Science and technology and technology", "Science and technology", regex=True) 
+    new_df.topic = new_df.topic.str.replace("Science and technology and technologyand Technology", "Science and technology", regex=True) 
+    new_df.topic = new_df.topic.str.replace("Science and technology and technologyand technology ", "Science and technology", regex=True)
+    
+    """ 
+    array(['Armed conflicts and attacks', 'Arts and culture',
+       'Disasters and accidents', 'Health and environment',
+       'International relations', 'Law and crime',
+       'Politics and elections', 'Sports', 'Science and technology',
+       'Business and economy', 'Other', 'Politics and economics',
+       'Royalty', 'Science and technologyand Technology',
+       'Science and technology ', 'Entertainment'], dtype=object)
+    """
+    new_df.topic = new_df.topic.str.replace("Science and technology ", "Science and technology", regex=True) 
+    new_df.topic = new_df.topic.str.replace("Science and technologyand Technology", "Science and technology", regex=True) 
+    
+    
+    
     new_df['topic_cleaned'] = new_df.topic.str.split(",") 
+    
+    
+    # ----- CREATING A NEW DATAFRAME HERE
 
     new_df2 = new_df.drop(['text'], axis=1)
     new_df2['date'] = new_df2.index
@@ -102,28 +250,242 @@ def extract_text(data):
     pass 
 
     
+
     
 
 
 def preprocess_data(data): 
     
     """ 
-    The objective is to track news data over time 
+    The objective is to track news data over time. 
+    
+    To do this, I will model the rate of news reports for each topic.
+    
+    To preprocess, I will need to convert the "topic" column into a one suitable
+    for multilabel classification 
+    
+    The multilearn library provides a way to complete this task. I will
+    need a list of the unique topics 
+    
+    I will need to search of the "unqiue" topic in each row 
+    
+    There should be 14 unique topics. This could be a very computationally 
+    Expensive task. 
+    
+    
     
     """
     
-    pass
+    # putting all the words on lower case 
+    data['text'] = data['text'].str.lower() 
+    
+    
+    topics = ['Armed conflicts and attacks', 'Arts and culture',
+       'Business and economy', 'Disasters and accidents',
+       'Health and environment', 'International relations',
+       'Law and crime', 'Politics and elections',
+       'Science and technology', 'Sports', 'Other', 'Royalty',
+       'Politics and economics', 'Entertainment']
+    
+    data[[*topics]] = None
+    
+    
+    ## creating the new columns 
+    
+    
+    ## checking there is an element from "topic_list" that is in 
+    ## each row of the dataframe 
+    
+    # --- There was an error detailing an inconsistent number of samples 
+    # ---- (1001, 14014)
+    
+    for index in range(len(data.topic)): 
+        for category in topics: 
+            
+            # I could also do a regex search 
+            if re.search(category, data.topic.iloc[index]):
+                
+                data[category].iloc[index] = 1
+            else: 
+                
+                data[category].iloc[index] = 0 
+            
+    
+    
+    
+    # preprocessing the text (using vectorizer)
+    
+    
+    
+    ## encoding the topic column 
+    
+    # Do i need to encode the target variable? 
+    
+    
+    
+    
+    
+    # creating the new columns 
+    return data 
+    
+    
 
 
 
-def build_model(): 
+
+
+def build_model(data): 
     """
-    1. 
+    This will be a multi-label classification model 
+    to classify news reports.
+    
+    For this, I will use binary relevance as it is a very simple technique
+    and very interpretable.
     
     """
-    pass
+    vectoriser = TfidfVectorizer(stop_words=list(stop_words))
+    
+    # vectorising the text 
+    topics = ['Armed conflicts and attacks', 'Arts and culture',
+       'Business and economy', 'Disasters and accidents',
+       'Health and environment', 'International relations',
+       'Law and crime', 'Politics and elections',
+       'Science and technology', 'Sports', 'Other', 'Royalty',
+       'Politics and economics', 'Entertainment']
+    
+    
+    # I need to make sure I drop all of the columns 
+    print ("Forming the X and Y...")
+    X = data.text
+    print ("#--------------------")
+    
+    print ("#--------------------")
+    
+    
+    print (f"Shape of X: {np.shape(X)}")
+    
+    print ("Creating the target variable...")
+    y = data[[*topics]].values
+    y = csr_matrix(y, dtype=np.int64)
+    
+    # ------ converting y into a matrix 
+    
+    
+    
+    # ------ the vectorizer should be fit on the training dataset first 
+    
+    
+    
+    
+    print ("Splitting the dataset...")
+    
+    # ------ Make sure there is a consistent number of samples 
+    # ------ The vectoriser should be fit within the clean dataframe
+    
+    # ----- Found input variables with inconsistent numbers of samples: [1001, 14014]
+    
+    X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.2)
+    
+    # ------ Vectorising the training and test dataset 
+    
+    
+    print ("Vectorising...")
+    # ------ should only vectorise the training as it prevents data leakge
+    X_train_tfidf = vectoriser.fit_transform(X_train) 
+    X_test_tfidf = vectoriser.transform(X_test) 
+    
+    
+    
+    
+    
+    
+    
+    
+    print ("Creating the Classifier...")
+    # ------ scipy.sparse does not support dtype object 
+    
+    classifier = BinaryRelevance(DecisionTreeClassifier())
+
+    # train
+    print ("Fitting the Classifier...")
+    
+    # ------ Make sure that datatypes of the training and testing are right
+    # ------ Check datatypes of X_train and Y_train 
+    # ------ make sure the y_train is in int format 
+    
+    # ------ why is the X train shape (1,1)?
+    
+    
+    print (f"Shape of X_train_tfidf: {np.shape(X_train_tfidf)}")
+    print (X_train_tfidf)
+    print ("-------------------------")
+    
+    print (f"Shape of Y_train: {np.shape(Y_train)}")
+    classifier.fit(X_train_tfidf, Y_train)
+
+    #    predict
+    print ("Test predictions:") 
+    
+    predictions = classifier.predict(X_test_tfidf) 
+    print (f"predictions...: {predictions}")
+    print (f"Accuracy: {accuracy_score(predictions, Y_test)}")
+    print (f"Weighted f1 score: {f1_score(predictions, Y_test, average="weighted")}")
+    print (f"Weighted Precision: {precision_score(predictions, Y_test, average='weighted')}")
+    print (f"Weighted Recall: {recall_score(predictions, Y_test, average='weighted')}")
+    
+    
+    # ----- PLOTTING THE CONFUSION MATRIX 
+    
+    
+    
+    
+    
+    return classifier 
+    
+    ## Metrics 
+    
+
     
 
 
 
 
+
+
+
+# running all of the scripts
+
+def main(): 
+    try: 
+        
+        print ("Loading the data...")
+        data = load_data() 
+        print ("Cleaning the data...")
+        clean_df = clean_data(data) 
+        print ("Extracting the topics...") 
+        extracted_topics = extract_topics(clean_df) 
+        
+        print ("Preprocessing the data...") 
+        preprocessed_data = preprocess_data(clean_df) 
+        print ("Building the model...")
+        model = build_model(preprocessed_data) 
+        # ---- Saving the model 
+        print ("Saving the model...") 
+        joblib.dump(model, "news_model.pkl")
+        
+        
+    except Exception as e: 
+        print ("There was an error...") 
+        print (e)
+    else:
+        print ("Model successfully built...") 
+    finally:
+        print ("Exiting the program...") 
+        
+        
+    
+    
+    
+
+if __name__ == "__main__": 
+    main() 
