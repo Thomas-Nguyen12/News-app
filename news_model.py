@@ -10,8 +10,9 @@ from sklearn.tree import DecisionTreeClassifier
 import numpy as np
 import sklearn
 from sklearn import metrics 
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 # This module refers to k-nearest neighbors for multi-label
-from skmultilearn.adapt import MLkNN
+
 
 ## the ARAAM model is a neural network for large scale text classification 
 from skmultilearn.problem_transform import BinaryRelevance
@@ -343,6 +344,8 @@ def build_model(data):
     and very interpretable.
     
     """
+    
+    # I need to save the vectorizer
     vectoriser = TfidfVectorizer(stop_words=list(stop_words))
     
     # vectorising the text 
@@ -394,6 +397,7 @@ def build_model(data):
     X_train_tfidf = vectoriser.fit_transform(X_train) 
     X_test_tfidf = vectoriser.transform(X_test) 
     
+    joblib.dump(vectoriser, 'tfidf_vectoriser.pkl')
     
     
     
@@ -427,6 +431,7 @@ def build_model(data):
     print ("Test predictions:") 
     
     predictions = classifier.predict(X_test_tfidf) 
+    print (f"Shape of the predictions: {np.shape(predictions)}")
     print (f"predictions...: {predictions}")
     print (f"Accuracy: {accuracy_score(predictions, Y_test)}")
     print (f"Weighted f1 score: {f1_score(predictions, Y_test, average="weighted")}")
@@ -440,12 +445,23 @@ def build_model(data):
     
     
     
-    return classifier 
+    return classifier, predictions, Y_test
     
     ## Metrics 
     
+def plot_roc_curve(predictions, Y_test): 
+    
+    # ------ Need to use the Y true and predictions
+    
+    pass 
 
     
+def plot_confusion_matrix(model, predictions, Y_test): 
+    cm = confusion_matrix(Y_test, predictions, labels=model.classes_)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm,
+                              display_labels=model.classes_)
+    disp.plot() 
+    plt.show() 
 
 
 
@@ -462,16 +478,22 @@ def main():
         data = load_data() 
         print ("Cleaning the data...")
         clean_df = clean_data(data) 
+        clean_df.to_csv("clean_df.csv") 
         print ("Extracting the topics...") 
         extracted_topics = extract_topics(clean_df) 
-        
+        extracted_topics.to_csv("extracted_topics.csv")
         print ("Preprocessing the data...") 
         preprocessed_data = preprocess_data(clean_df) 
         print ("Building the model...")
-        model = build_model(preprocessed_data) 
+        model, predictions, Y_test = build_model(preprocessed_data) 
+        print ("Plotting metrics...") 
+        
+        #plot_confusion_matrix(model, predictions, Y_test)
         # ---- Saving the model 
         print ("Saving the model...") 
         joblib.dump(model, "news_model.pkl")
+        print ("Saving the dataset...") 
+        joblib.dump(preprocessed_data, 'preprocessed_data.pkl')
         
         
     except Exception as e: 
