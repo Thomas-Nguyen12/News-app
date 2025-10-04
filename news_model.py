@@ -2,7 +2,7 @@
 import pandas as pd 
 import matplotlib.pyplot as plt 
 import seaborn as sns 
-from sklearn.model_selection import train_test_split 
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import hamming_loss, accuracy_score, f1_score, precision_score, recall_score
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression 
@@ -27,6 +27,8 @@ from nltk.tokenize import word_tokenize
 from scipy.sparse import csr_matrix 
 import re 
 import joblib 
+from skopt import BayesSearchCV
+from sklearn.model_selection import GridSearchCV
 import warnings
 warnings.filterwarnings('ignore')
 """ 
@@ -390,7 +392,7 @@ def build_model(data):
     X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.2)
     
     # ------ Vectorising the training and test dataset 
-    
+    joblib.dump(Y_test, "Y_test_original.pkl")
     
     print ("Vectorising...")
     # ------ should only vectorise the training as it prevents data leakge
@@ -407,8 +409,16 @@ def build_model(data):
     
     print ("Creating the Classifier...")
     # ------ scipy.sparse does not support dtype object 
+    # creating an optimised model
+    classifier = DecisionTreeClassifier() 
+    print ("Optimising...")
+    param_grid = {
+        'max_depth': [None, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        'min_samples_split': [2, 3, 4, 5],
+        'max_features': [None, 1, 2, 3, 4, 5]
+    }
     
-    classifier = BinaryRelevance(DecisionTreeClassifier())
+    grid_search = BayesSearchCV(classifier, param_grid, cv=3, scoring='f1_weighted')
 
     # train
     print ("Fitting the Classifier...")
@@ -418,25 +428,30 @@ def build_model(data):
     # ------ make sure the y_train is in int format 
     
     # ------ why is the X train shape (1,1)?
-    
+    grid_search = BinaryRelevance(grid_search)
     
     print (f"Shape of X_train_tfidf: {np.shape(X_train_tfidf)}")
     print (X_train_tfidf)
     print ("-------------------------")
     
     print (f"Shape of Y_train: {np.shape(Y_train)}")
-    classifier.fit(X_train_tfidf, Y_train)
-
+    print ("Fitting the optimiser...")
+    grid_search.fit(X_train_tfidf, Y_train)
+    print ("Finished Optimising...")
     #    predict
-    print ("Test predictions:") 
+    print ("creating predictions...") 
     
-    predictions = classifier.predict(X_test_tfidf) 
+    predictions = grid_search.predict(X_test_tfidf) 
+    
     print (f"Shape of the predictions: {np.shape(predictions)}")
     print (f"predictions...: {predictions}")
     print (f"Accuracy: {accuracy_score(predictions, Y_test)}")
     print (f"Weighted f1 score: {f1_score(predictions, Y_test, average="weighted")}")
     print (f"Weighted Precision: {precision_score(predictions, Y_test, average='weighted')}")
     print (f"Weighted Recall: {recall_score(predictions, Y_test, average='weighted')}")
+    
+   
+    
     
     
     # ----- PLOTTING THE CONFUSION MATRIX 
@@ -445,7 +460,7 @@ def build_model(data):
     
     
     
-    return classifier, predictions, Y_test
+    return grid_search, predictions, Y_test, X_test_tfidf
     
     ## Metrics 
     
@@ -485,7 +500,7 @@ def main():
         print ("Preprocessing the data...") 
         preprocessed_data = preprocess_data(clean_df) 
         print ("Building the model...")
-        model, predictions, Y_test = build_model(preprocessed_data) 
+        model, predictions, Y_test, X_test_tfidf = build_model(preprocessed_data) 
         print ("Plotting metrics...") 
         
         #plot_confusion_matrix(model, predictions, Y_test)
@@ -494,6 +509,12 @@ def main():
         joblib.dump(model, "news_model.pkl")
         print ("Saving the dataset...") 
         joblib.dump(preprocessed_data, 'preprocessed_data.pkl')
+        
+        ## saving the output of Y_test and predictions
+        joblib.dump(predictions, 'predictions.pkl')
+        joblib.dump(Y_test, 'Y_test.pkl')
+       
+        joblib.dump(X_test_tfidf, 'X_test_tfidf.pkl')
         
         
     except Exception as e: 
